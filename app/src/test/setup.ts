@@ -28,3 +28,4 @@ class ResizeObserverMock {
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 vi.stubGlobal('scrollTo', vi.fn())
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null)

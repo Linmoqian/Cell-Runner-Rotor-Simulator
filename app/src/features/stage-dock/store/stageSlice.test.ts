@@ -18,7 +18,6 @@ describe('stageSlice', () => {
 
     expect(state.stages).toHaveLength(2)
     expect(state.activeStageId).toBe(state.stages[1].id)
-    expect(state.clearedStageIds).toContain(state.stages[1].id)
   })
 
   it('删除当前舞台后选择相邻舞台', () => {

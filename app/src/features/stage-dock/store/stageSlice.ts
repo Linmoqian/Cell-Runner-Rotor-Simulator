@@ -4,7 +4,6 @@ import { stagePalettes, type Stage, type StageGroup } from '../types'
 export interface StageState {
   stages: Stage[]
   activeStageId: string
-  clearedStageIds: string[]
   groups: StageGroup[]
   expandedGroupIds: string[]
 }
@@ -12,7 +11,6 @@ export interface StageState {
 export const initialStageState: StageState = {
   stages: [{ id: 'stage-1', palette: 'mint' }],
   activeStageId: 'stage-1',
-  clearedStageIds: ['stage-1'],
   groups: [],
   expandedGroupIds: [],
 }
@@ -27,7 +25,6 @@ const stageSlice = createSlice({
         const palette = stagePalettes[state.stages.length % stagePalettes.length]
 
         state.stages.push({ id: action.payload.id, palette })
-        state.clearedStageIds.push(action.payload.id)
         state.activeStageId = action.payload.id
       },
     },
@@ -40,7 +37,6 @@ const stageSlice = createSlice({
       const removedGroupId = state.stages[stageIndex].groupId
       const nextActiveStage = state.stages[stageIndex - 1] ?? state.stages[stageIndex + 1]
       state.stages.splice(stageIndex, 1)
-      state.clearedStageIds = state.clearedStageIds.filter((stageId) => stageId !== action.payload)
 
       if (state.activeStageId === action.payload) state.activeStageId = nextActiveStage.id
 
@@ -57,7 +53,6 @@ const stageSlice = createSlice({
 
         const sourceStage = state.stages[stageIndex]
         state.stages.splice(stageIndex + 1, 0, { ...sourceStage, id: action.payload.id })
-        state.clearedStageIds.push(action.payload.id)
         state.activeStageId = action.payload.id
       },
     },

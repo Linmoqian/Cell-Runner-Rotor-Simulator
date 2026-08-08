@@ -1,10 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+import { createRunnerRotorCell, MCF10A_COLLAGEN } from '../model/runnerRotor'
 import { ObservationViewport } from './ObservationViewport'
 
 describe('ObservationViewport', () => {
   it('拖动坐标舞台后保留圆心偏移', () => {
-    render(<ObservationViewport activeStageNumber={1} />)
+    render(
+      <ObservationViewport
+        activeStageNumber={1}
+        onSnapshot={() => createRunnerRotorCell()}
+        params={MCF10A_COLLAGEN}
+        paused={false}
+        resetKey="test"
+      />,
+    )
     const stagePlane = screen.getByRole('region', { name: '可拖动的坐标舞台；使用方向键微调' })
 
     expect(screen.getByText('ORIGIN / X +000 Y +000 PX')).toBeInTheDocument()
@@ -17,5 +26,6 @@ describe('ObservationViewport', () => {
     expect(stagePlane).toHaveStyle({ transform: 'translate(32px, -25px)' })
     expect(stagePlane).toHaveAttribute('aria-grabbed', 'false')
     expect(screen.getByText('ORIGIN / X +032 Y -025 PX')).toBeInTheDocument()
+    expect(screen.getByLabelText('Runner-Rotor 单细胞运动与可变形膜动画')).toBeInTheDocument()
   })
 })

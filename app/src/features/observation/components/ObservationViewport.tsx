@@ -1,9 +1,14 @@
 import { type KeyboardEvent, type PointerEvent, useRef, useState } from 'react'
+import type { CellParams, RunnerRotorCell } from '../model/runnerRotor'
+import { CellSimulationCanvas } from './CellSimulationCanvas'
 import styles from './ObservationStage.module.css'
 
 interface ObservationViewportProps {
   activeStageNumber: number
-  empty?: boolean
+  onSnapshot: (snapshot: RunnerRotorCell) => void
+  params: CellParams
+  paused: boolean
+  resetKey: string
 }
 
 interface Coordinate {
@@ -14,7 +19,13 @@ interface Coordinate {
 const formatCoordinate = (value: number) =>
   `${value >= 0 ? '+' : '-'}${String(Math.abs(value)).padStart(3, '0')}`
 
-export function ObservationViewport({ activeStageNumber, empty = false }: ObservationViewportProps) {
+export function ObservationViewport({
+  activeStageNumber,
+  onSnapshot,
+  params,
+  paused,
+  resetKey,
+}: ObservationViewportProps) {
   const [stageOffset, setStageOffset] = useState<Coordinate>({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const dragStart = useRef<{
@@ -68,26 +79,20 @@ export function ObservationViewport({ activeStageNumber, empty = false }: Observ
     setStageOffset((offset) => ({ x: offset.x + offsets.x, y: offset.y + offsets.y }))
   }
 
-  if (empty) {
-    return (
-      <section className={styles.emptyObservation} aria-label="空观察舞台">
-        <div className={`${styles.stageFrame} ${styles.emptyFrame}`}>
-          <div className={`${styles.stageViewport} ${styles.emptyViewport}`}>
-            <div className={`${styles.crosshair} ${styles.crosshairHorizontal}`} />
-            <div className={`${styles.crosshair} ${styles.crosshairVertical}`} />
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
     <div className={styles.stageFrame}>
       <div className={styles.stageToolbar}>
         <span>FIELD / A-{String(activeStageNumber).padStart(2, '0')}</span>
-        <span>ORIGIN / 0, 0</span>
+        <span>SIMULATION / 5 MIN·S⁻¹</span>
       </div>
       <div className={styles.stageViewport}>
+        <CellSimulationCanvas
+          onSnapshot={onSnapshot}
+          params={params}
+          paused={paused}
+          resetKey={resetKey}
+          viewOffset={stageOffset}
+        />
         <div
           aria-grabbed={isDragging}
           aria-label="可拖动的坐标舞台；使用方向键微调"
@@ -108,12 +113,12 @@ export function ObservationViewport({ activeStageNumber, empty = false }: Observ
         <span className={`${styles.scaleMark} ${styles.scaleMarkBottom}`}>◉ X / Y AXIS</span>
       </div>
       <div className={styles.stageFooter}>
-        <span>OPTICAL CHANNEL / CH-01</span>
+        <span>MCF-10A / COLLAGEN</span>
         <span className={styles.footerLine} />
         <span aria-live="polite">
           ORIGIN / X {formatCoordinate(stageOffset.x)} Y {formatCoordinate(stageOffset.y)} PX
         </span>
-        <span>OBSERVATION MODE</span>
+        <span>RUNNER-ROTOR</span>
       </div>
     </div>
   )
