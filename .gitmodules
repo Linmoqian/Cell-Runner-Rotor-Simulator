@@ -1,0 +1,4 @@
+[submodule "app/cell-proc-anim"]
+	path = app/cell-proc-anim
+	url = https://github.com/Linmoqian/cell-proc-anim.git
+	branch = main

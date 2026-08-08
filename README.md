@@ -10,7 +10,7 @@
 │   ├── src/features/       # 按业务能力拆分的前端模块
 │   ├── src/routes/         # 页面路由组装
 │   ├── src/store/          # Redux Toolkit Store 与类型化 Hooks
-│   └── cell-proc-anim/     # 独立 Processing 程序动画草图
+│   └── cell-proc-anim/     # 独立 Processing 程序动画草图（Git 子模块）
 ├── docs/development/       # 工程专题规范
 └── skills/                 # 项目工程协作 Skill
 ```
@@ -40,4 +40,5 @@ npm run check
 
 - 通用规则见 [AGENTS.md](AGENTS.md) 与 [CLAUDE.md](CLAUDE.md)。
 - 前端开发遵循 [docs/development/frontend.md](docs/development/frontend.md)。
-- Processing 草图保持独立，不与 React 构建流程耦合。
+- Processing 草图保持独立，不与 React 构建流程耦合；其源码通过 Git 子模块跟踪 [cell-proc-anim](https://github.com/Linmoqian/cell-proc-anim)。
+- 克隆后执行 `git submodule update --init --recursive` 获取草图；如需拉取上游 `main` 的新版本，执行 `git submodule update --remote app/cell-proc-anim`，再提交更新后的子模块引用。
