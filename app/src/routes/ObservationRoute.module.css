@@ -1,0 +1,13 @@
+.observatory {
+  display: block;
+  min-height: 100svh;
+  padding: 0;
+  color: #dbe8e4;
+  background: #11191d;
+}
+
+@media (max-width: 720px) {
+  .observatory {
+    padding: 28px 18px 24px;
+  }
+}
