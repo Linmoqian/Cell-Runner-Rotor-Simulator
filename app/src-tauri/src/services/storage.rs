@@ -22,6 +22,16 @@ enum StorageCommand {
         cell: CellDto,
         reply: SyncSender<Result<(), ApiError>>,
     },
+    CreateObservatory {
+        observatory: ObservatoryDto,
+        reply: SyncSender<Result<(), ApiError>>,
+    },
+    UpdateObservatory {
+        id: String,
+        params: Option<CellParams>,
+        paused: Option<bool>,
+        reply: SyncSender<Result<(), ApiError>>,
+    },
     Persist(SimulationFrameDto),
     Shutdown,
 }
@@ -65,6 +75,19 @@ impl StorageHandle {
             .map_err(|_| ApiError::new("DATABASE_TIMEOUT", "数据库写入超时"))?
     }
 
+    pub fn create_observatory(&self, observatory: ObservatoryDto) -> Result<(), ApiError> {
+        let (reply_sender, reply_receiver) = mpsc::sync_channel(1);
+        self.sender
+            .send(StorageCommand::CreateObservatory {
+                observatory,
+                reply: reply_sender,
+            })
+            .map_err(|_| ApiError::new("DATABASE_UNAVAILABLE", "数据库线程已停止"))?;
+        reply_receiver
+            .recv_timeout(Duration::from_secs(2))
+            .map_err(|_| ApiError::new("DATABASE_TIMEOUT", "数据库写入超时"))?
+    }
+
     pub fn try_persist(&self, frame: SimulationFrameDto) {
         match self.sender.try_send(StorageCommand::Persist(frame)) {
             Ok(()) | Err(TrySendError::Full(_)) => {}
@@ -72,6 +95,26 @@ impl StorageHandle {
                 eprintln!("[错误] SQLite 写入线程已停止");
             }
         }
+    }
+
+    pub fn update_observatory(
+        &self,
+        id: String,
+        params: Option<CellParams>,
+        paused: Option<bool>,
+    ) -> Result<(), ApiError> {
+        let (reply_sender, reply_receiver) = mpsc::sync_channel(1);
+        self.sender
+            .send(StorageCommand::UpdateObservatory {
+                id,
+                params,
+                paused,
+                reply: reply_sender,
+            })
+            .map_err(|_| ApiError::new("DATABASE_UNAVAILABLE", "数据库线程已停止"))?;
+        reply_receiver
+            .recv_timeout(Duration::from_secs(2))
+            .map_err(|_| ApiError::new("DATABASE_TIMEOUT", "数据库写入超时"))?
     }
 
     pub fn shutdown(&self) {
@@ -230,14 +273,118 @@ fn storage_loop(mut connection: Connection, receiver: Receiver<StorageCommand>) 
                 let result = insert_cell(&mut connection, &cell);
                 let _ = reply.send(result);
             }
+            StorageCommand::CreateObservatory { observatory, reply } => {
+                let result = insert_observatory(&connection, &observatory);
+                let _ = reply.send(result);
+            }
             StorageCommand::Persist(frame) => {
                 if let Err(error) = persist_frame(&mut connection, &frame) {
                     eprintln!("[错误] SQLite 检查点写入失败：{}", error.message);
                 }
             }
+            StorageCommand::UpdateObservatory {
+                id,
+                params,
+                paused,
+                reply,
+            } => {
+                let result = update_observatory(&connection, &id, params, paused);
+                let _ = reply.send(result);
+            }
             StorageCommand::Shutdown => break,
         }
     }
+}
+
+fn insert_observatory(
+    connection: &Connection,
+    observatory: &ObservatoryDto,
+) -> Result<(), ApiError> {
+    let group_exists = connection
+        .query_row(
+            "SELECT 1 FROM observatory_groups WHERE id = ?1",
+            [&observatory.group_id],
+            |_| Ok(()),
+        )
+        .is_ok();
+    if !group_exists {
+        return Err(ApiError::new("GROUP_NOT_FOUND", "观察台组不存在"));
+    }
+    connection
+        .execute(
+            "INSERT INTO observatories(
+                id, group_id, name, palette, dr_run, dr_turn, omega_turn, tau_run, tau_turn,
+                v_run, v_turn, paused, tick, simulated_minutes, camera_x, camera_y, camera_zoom,
+                created_at, updated_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, 0, 0, 0, 0, 1,
+                CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            params![
+                observatory.id,
+                observatory.group_id,
+                observatory.name,
+                observatory.palette,
+                observatory.params.dr_run,
+                observatory.params.dr_turn,
+                observatory.params.omega_turn,
+                observatory.params.tau_run,
+                observatory.params.tau_turn,
+                observatory.params.v_run,
+                observatory.params.v_turn,
+                i64::from(observatory.paused)
+            ],
+        )
+        .map(|_| ())
+        .map_err(|error| ApiError::new("DATABASE_ERROR", error.to_string()))
+}
+
+fn update_observatory(
+    connection: &Connection,
+    id: &str,
+    params: Option<CellParams>,
+    paused: Option<bool>,
+) -> Result<(), ApiError> {
+    let existing = connection
+        .query_row(
+            "SELECT dr_run, dr_turn, omega_turn, tau_run, tau_turn, v_run, v_turn, paused
+             FROM observatories WHERE id = ?1",
+            [id],
+            |row| {
+                Ok((
+                    CellParams {
+                        dr_run: row.get(0)?,
+                        dr_turn: row.get(1)?,
+                        omega_turn: row.get(2)?,
+                        tau_run: row.get(3)?,
+                        tau_turn: row.get(4)?,
+                        v_run: row.get(5)?,
+                        v_turn: row.get(6)?,
+                    },
+                    row.get::<_, i64>(7)? != 0,
+                ))
+            },
+        )
+        .map_err(|_| ApiError::new("OBSERVATORY_NOT_FOUND", "观察台不存在"))?;
+    let next_params = params.unwrap_or(existing.0);
+    let next_paused = paused.unwrap_or(existing.1);
+    connection
+        .execute(
+            "UPDATE observatories SET dr_run = ?1, dr_turn = ?2, omega_turn = ?3,
+                tau_run = ?4, tau_turn = ?5, v_run = ?6, v_turn = ?7, paused = ?8,
+                updated_at = CURRENT_TIMESTAMP WHERE id = ?9",
+            params![
+                next_params.dr_run,
+                next_params.dr_turn,
+                next_params.omega_turn,
+                next_params.tau_run,
+                next_params.tau_turn,
+                next_params.v_run,
+                next_params.v_turn,
+                i64::from(next_paused),
+                id
+            ],
+        )
+        .map(|_| ())
+        .map_err(|error| ApiError::new("DATABASE_ERROR", error.to_string()))
 }
 
 fn insert_cell(connection: &mut Connection, cell: &CellDto) -> Result<(), ApiError> {

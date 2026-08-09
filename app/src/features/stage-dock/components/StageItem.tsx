@@ -38,7 +38,7 @@ export function StageItem({
         className={`${styles.stageThumbnail} ${paletteClass}${isActive ? ` ${styles.active}` : ''}${isGroupLead ? ` ${styles.groupThumbnail}` : ''}`}
         type="button"
         role="tab"
-        aria-label={isGroupLead ? `展开${group?.name}` : `切换到第 ${stageIndex + 1} 个舞台`}
+        aria-label={isGroupLead ? `展开${group?.name}` : `切换到第 ${stageIndex + 1} 个观察台`}
         aria-selected={isActive}
         data-stage-id={stage.id}
         tabIndex={isActive ? 0 : -1}

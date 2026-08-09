@@ -11,7 +11,7 @@ use crate::{
     domain::runner_rotor::{Cell, CellParams, step_cell},
     dto::{
         AddCellRequest, ApiError, BootstrapDto, CellCreatedDto, CellDto, CellFrameDto,
-        SimulationFrameDto,
+        ObservatoryDto, SimulationFrameDto, UpdateObservatoryRequest,
     },
     services::storage::StorageHandle,
 };
@@ -33,6 +33,12 @@ struct ObservatoryRuntime {
 
 enum SimulationCommand {
     AddCell(Cell),
+    AddObservatory(ObservatoryRuntime),
+    UpdateObservatory {
+        id: String,
+        params: Option<CellParams>,
+        paused: Option<bool>,
+    },
     Shutdown,
 }
 
@@ -89,18 +95,7 @@ impl DesktopRuntime {
     }
 
     pub fn add_cell(&self, request: AddCellRequest) -> Result<CellCreatedDto, ApiError> {
-        let heading = request.heading.unwrap_or(0.0);
-        let x = request.x.unwrap_or(0.0);
-        let y = request.y.unwrap_or(0.0);
-        if !heading.is_finite() || !x.is_finite() || !y.is_finite() {
-            return Err(ApiError::new(
-                "INVALID_REQUEST",
-                "细胞坐标和方向必须为有限数",
-            ));
-        }
-        let seed = random_seed();
-        let id = format!("cell-{}", Uuid::new_v4());
-        {
+        let cell_count = {
             let bootstrap = self
                 .inner
                 .bootstrap
@@ -113,19 +108,36 @@ impl DesktopRuntime {
             {
                 return Err(ApiError::new("OBSERVATORY_NOT_FOUND", "观察台不存在"));
             }
-            if bootstrap
+            let count = bootstrap
                 .cells
                 .iter()
                 .filter(|cell| cell.observatory_id == request.observatory_id)
-                .count()
-                >= 500
-            {
+                .count();
+            if count >= 500 {
                 return Err(ApiError::new(
                     "CELL_LIMIT_REACHED",
                     "观察台细胞数量已达上限",
                 ));
             }
+            count
+        };
+        let seed = random_seed();
+        let spawn_angle = f64::from(seed) / 4_294_967_296.0 * std::f64::consts::TAU;
+        let population_radius = 80.0_f64.max(((cell_count + 1) as f64).sqrt() * 30.0);
+        let spawn_radius =
+            (f64::from(seed.rotate_left(13)) / 4_294_967_296.0).sqrt() * population_radius;
+        let heading = request
+            .heading
+            .unwrap_or(spawn_angle - std::f64::consts::PI);
+        let x = request.x.unwrap_or(spawn_angle.cos() * spawn_radius);
+        let y = request.y.unwrap_or(spawn_angle.sin() * spawn_radius);
+        if !heading.is_finite() || !x.is_finite() || !y.is_finite() {
+            return Err(ApiError::new(
+                "INVALID_REQUEST",
+                "细胞坐标和方向必须为有限数",
+            ));
         }
+        let id = format!("cell-{}", Uuid::new_v4());
         let cell_dto = CellDto {
             chirality: 1,
             elapsed_minutes: 0.0,
@@ -154,6 +166,78 @@ impl DesktopRuntime {
             id,
             observatory_id: request.observatory_id,
         })
+    }
+
+    pub fn update_observatory(
+        &self,
+        observatory_id: String,
+        update: UpdateObservatoryRequest,
+    ) -> Result<(), ApiError> {
+        self.inner.storage.update_observatory(
+            observatory_id.clone(),
+            update.params,
+            update.paused,
+        )?;
+        self.inner
+            .simulation_sender
+            .try_send(SimulationCommand::UpdateObservatory {
+                id: observatory_id.clone(),
+                params: update.params,
+                paused: update.paused,
+            })
+            .map_err(|_| ApiError::new("SIMULATION_BUSY", "模拟命令队列已满"))?;
+        let mut bootstrap = self
+            .inner
+            .bootstrap
+            .lock()
+            .map_err(|_| ApiError::new("STATE_ERROR", "观察台状态锁已损坏"))?;
+        let observatory = bootstrap
+            .observatories
+            .iter_mut()
+            .find(|candidate| candidate.id == observatory_id)
+            .ok_or_else(|| ApiError::new("OBSERVATORY_NOT_FOUND", "观察台不存在"))?;
+        if let Some(params) = update.params {
+            observatory.params = params;
+        }
+        if let Some(paused) = update.paused {
+            observatory.paused = paused;
+        }
+        Ok(())
+    }
+
+    pub fn create_observatory(&self, group_id: String) -> Result<ObservatoryDto, ApiError> {
+        let mut bootstrap = self
+            .inner
+            .bootstrap
+            .lock()
+            .map_err(|_| ApiError::new("STATE_ERROR", "观察台状态锁已损坏"))?;
+        if !bootstrap.groups.iter().any(|group| group.id == group_id) {
+            return Err(ApiError::new("GROUP_NOT_FOUND", "观察台组不存在"));
+        }
+        let index = bootstrap.observatories.len();
+        let palettes = ["mint", "violet", "amber", "blue", "rose"];
+        let observatory = ObservatoryDto {
+            camera_x: 0.0,
+            camera_y: 0.0,
+            camera_zoom: 1.0,
+            group_id,
+            id: format!("observatory-{}", Uuid::new_v4()),
+            name: format!("观察台 {:02}", index + 1),
+            palette: palettes[index % palettes.len()].into(),
+            params: CellParams::default(),
+            paused: false,
+            simulated_minutes: 0.0,
+            tick: 0,
+        };
+        self.inner.storage.create_observatory(observatory.clone())?;
+        self.inner
+            .simulation_sender
+            .try_send(SimulationCommand::AddObservatory(
+                observatory_runtime_from_dto(&observatory),
+            ))
+            .map_err(|_| ApiError::new("SIMULATION_BUSY", "模拟命令队列已满"))?;
+        bootstrap.observatories.push(observatory.clone());
+        Ok(observatory)
     }
 }
 
@@ -204,6 +288,17 @@ fn hydrate_observatories(bootstrap: &BootstrapDto) -> HashMap<String, Observator
         .collect()
 }
 
+fn observatory_runtime_from_dto(observatory: &ObservatoryDto) -> ObservatoryRuntime {
+    ObservatoryRuntime {
+        cells: HashMap::new(),
+        id: observatory.id.clone(),
+        params: observatory.params,
+        paused: observatory.paused,
+        simulated_minutes: observatory.simulated_minutes,
+        tick: observatory.tick,
+    }
+}
+
 fn simulation_loop(
     mut observatories: HashMap<String, ObservatoryRuntime>,
     receiver: mpsc::Receiver<SimulationCommand>,
@@ -218,6 +313,19 @@ fn simulation_loop(
                 Ok(SimulationCommand::AddCell(cell)) => {
                     if let Some(observatory) = observatories.get_mut(&cell.observatory_id) {
                         observatory.cells.insert(cell.id.clone(), cell);
+                    }
+                }
+                Ok(SimulationCommand::AddObservatory(observatory)) => {
+                    observatories.insert(observatory.id.clone(), observatory);
+                }
+                Ok(SimulationCommand::UpdateObservatory { id, params, paused }) => {
+                    if let Some(observatory) = observatories.get_mut(&id) {
+                        if let Some(params) = params {
+                            observatory.params = params;
+                        }
+                        if let Some(paused) = paused {
+                            observatory.paused = paused;
+                        }
                     }
                 }
                 Ok(SimulationCommand::Shutdown) | Err(mpsc::TryRecvError::Disconnected) => {

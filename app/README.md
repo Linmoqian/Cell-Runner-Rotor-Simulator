@@ -4,7 +4,7 @@
 
 - React 19 + TypeScript 6 + Vite 8
 - React Router：页面路由
-- Redux Toolkit + React Redux：跨组件舞台状态
+- Redux Toolkit + React Redux：跨组件观察台索引状态
 - Ant Design：主题 Token、语言环境与通用交互组件
 - Motion：悬浮坞布局和拖拽动画
 - Vitest + React Testing Library + jsdom：组件与状态测试
@@ -16,8 +16,8 @@
 src/
 ├── app/                       # 全局 Provider 与主题
 ├── features/
-│   ├── observation/           # 观察视图
-│   └── stage-dock/            # 悬浮坞、Resize Hook 与 Redux Slice
+│   ├── observation/           # 后端帧客户端、单 Canvas 群体观察视图
+│   └── stage-dock/            # 观察台分组、切换坞与 Redux Slice
 ├── routes/                    # 路由级页面组装
 ├── store/                     # Store 与类型化 Hooks
 ├── test/                      # 测试环境初始化
@@ -44,4 +44,6 @@ npm run preview       # 预览生产构建
 
 ## 状态边界
 
-舞台列表、当前舞台和清空状态由 Redux Toolkit 管理，因为这些状态同时被悬浮坞和观察视图消费。坞的折叠、管理模式和实时尺寸属于组件局部交互状态，保留在组件与 Hook 内，避免扩大 Store。
+观察台及分组索引由启动时的后端 bootstrap 水合到 Redux，当前观察台由悬浮坞和观察视图共同消费。科学状态、细胞轨迹和随机数状态只存在于后端；前端逐帧数据保留在 Canvas 组件的 ref/Map 中，不进入 Redux，避免触发群体级 React 重渲染。
+
+Web 开发需同时启动仓库 `server/`。Tauri 环境由 `window.__TAURI__` 自动切换到 Rust command/事件，不需要另一套页面代码。

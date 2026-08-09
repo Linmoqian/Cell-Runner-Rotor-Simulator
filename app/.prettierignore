@@ -3,3 +3,5 @@ dist/
 node_modules/
 public/
 src/assets/
+src-tauri/gen/
+src-tauri/target/

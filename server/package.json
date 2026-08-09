@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "experiment:export": "node scripts/export-batch-experiment.js",
     "start": "node src/server.js",
     "test": "node --test",
     "check": "node --check src/server.js && node --check src/runtime/simulationWorker.js && node --check src/storage/databaseWorker.js && node --test"

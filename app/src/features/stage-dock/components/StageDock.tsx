@@ -8,12 +8,18 @@ import { StageList } from './StageList'
 import styles from './StageDock.module.css'
 
 interface StageDockProps {
+  addingObservatory?: boolean
+  onAddObservatory?: () => void
   onCollapsedChange?: (collapsed: boolean) => void
 }
 
 const cx = (...classNames: Array<string | false>) => classNames.filter(Boolean).join(' ')
 
-export function StageDock({ onCollapsedChange }: StageDockProps) {
+export function StageDock({
+  addingObservatory = false,
+  onAddObservatory = () => {},
+  onCollapsedChange,
+}: StageDockProps) {
   const { activeStageId, expandedGroupIds, groups, stages } = useAppSelector((state) => state.stages)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -26,7 +32,7 @@ export function StageDock({ onCollapsedChange }: StageDockProps) {
   return (
     <motion.aside
       className={cx(styles.stageDock, isCollapsed && styles.collapsed)}
-      aria-label="舞台切换与管理"
+      aria-label="观察台切换与管理"
       layout
       initial={{ opacity: 0, scale: 0.92, x: '-50%', y: 16, filter: 'blur(4px)' }}
       animate={{
@@ -39,11 +45,11 @@ export function StageDock({ onCollapsedChange }: StageDockProps) {
       style={{ transformOrigin: 'center bottom' } as CSSProperties}
       transition={{ type: 'spring', bounce: 0, duration: 0.32 }}
     >
-      <Tooltip title={isCollapsed ? '展开舞台坞' : '收起舞台坞'} placement="right">
+      <Tooltip title={isCollapsed ? '展开观察台坞' : '收起观察台坞'} placement="right">
         <button
           className={cx(styles.iconButton, styles.logo)}
           type="button"
-          aria-label={isCollapsed ? '展开舞台坞' : '收起舞台坞'}
+          aria-label={isCollapsed ? '展开观察台坞' : '收起观察台坞'}
           aria-pressed={isCollapsed}
           onClick={toggleCollapsed}
         >
@@ -66,7 +72,7 @@ export function StageDock({ onCollapsedChange }: StageDockProps) {
               groups={groups}
               stages={stages}
             />
-            <DockActions />
+            <DockActions adding={addingObservatory} onAdd={onAddObservatory} />
           </motion.div>
         )}
       </AnimatePresence>

@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 接口标识 | `get_bootstrap`、`add_cell`、`simulation://frame` |
+| 接口标识 | `get_bootstrap`、`create_observatory`、`update_observatory`、`add_cell`、`simulation://frame` |
 | 用途 | 在桌面 WebView 与 Rust 群体模拟运行时之间交换实验命令和科学帧 |
 | 调用方 | React 观察台前端 |
 | 提供方 | Tauri Rust 后端 |
@@ -18,7 +18,7 @@
 
 ## 请求
 
-`get_bootstrap` 没有参数。`add_cell` 接收以下参数：
+`get_bootstrap` 没有参数。`create_observatory` 接收 `groupId`，`update_observatory` 接收 `observatoryId` 和包含 `paused` 或完整 `params` 的 `update`。`add_cell` 接收以下参数：
 
 | 字段 | 位置 | 类型 | 必填 | 默认值 | 约束 | 说明 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -83,5 +83,5 @@ await invoke('add_cell', {
 
 ## 兼容性与变更记录
 
-- 0.1.0：引入 bootstrap、添加细胞和科学帧事件。
+- 0.1.0：引入 bootstrap、观察台创建与控制、添加细胞和科学帧事件。
 - Web 与桌面帧字段保持同名、同单位；调用方必须忽略未知字段。

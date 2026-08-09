@@ -1,11 +1,13 @@
 import { randomBytes, randomUUID } from 'node:crypto'
-import { createReadStream, existsSync } from 'node:fs'
+import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { dirname, extname, join, normalize } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { DatabaseClient } from './storage/databaseClient.js'
 import { PersistenceCoordinator } from './runtime/persistenceCoordinator.js'
 import { SimulationPool } from './runtime/simulationPool.js'
+import { MCF10A_COLLAGEN } from './domain/runnerRotor.js'
+import { exportBatchExperiment } from './experiments/batchExperiment.js'
 
 const SOURCE_DIR = dirname(fileURLToPath(import.meta.url))
 const PROJECT_DIR = join(SOURCE_DIR, '..', '..')
@@ -13,6 +15,12 @@ const DEFAULT_DATABASE_PATH = join(PROJECT_DIR, 'data', 'cell-runner-rotor.sqlit
 const DEFAULT_STATIC_DIR = join(PROJECT_DIR, '..', 'app', 'dist')
 const MAX_BODY_BYTES = 32 * 1024
 const MAX_CELLS_PER_OBSERVATORY = 500
+const BATCH_EXPORT_FILES = new Set([
+  'manifest.json',
+  'state_residence_times.csv',
+  'trajectories.csv',
+  'turning_angles.csv',
+])
 
 const mimeTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -33,6 +41,16 @@ function sendJson(response, statusCode, value) {
 
 function sendError(response, statusCode, code, message) {
   sendJson(response, statusCode, { error: { code, message } })
+}
+
+function sendDownload(response, filePath, filename) {
+  const type = filename.endsWith('.json') ? 'application/json; charset=utf-8' : 'text/csv; charset=utf-8'
+  response.writeHead(200, {
+    'Content-Disposition': `attachment; filename="${filename}"`,
+    'Content-Length': statSync(filePath).size,
+    'Content-Type': type,
+  })
+  createReadStream(filePath).pipe(response)
 }
 
 async function readJson(request) {
@@ -109,6 +127,7 @@ export async function createRuntimeServer(options = {}) {
   const persistence = new PersistenceCoordinator(database)
   const sse = createSseHub()
   const bootstrap = await database.request('getBootstrap')
+  const experimentOutputDirectory = options.experimentOutputDirectory ?? join(PROJECT_DIR, 'artifacts')
 
   for (const observatory of bootstrap.observatories) {
     pool.send(observatory.id, 'upsertObservatory', {
@@ -132,6 +151,39 @@ export async function createRuntimeServer(options = {}) {
         return
       }
 
+      const batchDownloadMatch = url.pathname.match(/^\/api\/v1\/experiments\/batch\/([0-9a-f-]+)\/([^/]+)$/)
+      if (request.method === 'GET' && batchDownloadMatch) {
+        const [, experimentId, filename] = batchDownloadMatch
+        if (!BATCH_EXPORT_FILES.has(filename)) {
+          sendError(response, 404, 'NOT_FOUND', '导出文件不存在')
+          return
+        }
+        const filePath = join(experimentOutputDirectory, `batch-${experimentId}`, filename)
+        if (!existsSync(filePath)) {
+          sendError(response, 404, 'NOT_FOUND', '导出文件不存在')
+          return
+        }
+        sendDownload(response, filePath, filename)
+        return
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/v1/experiments/batch') {
+        const body = await readJson(request)
+        const experimentId = randomUUID()
+        const manifest = await exportBatchExperiment(join(experimentOutputDirectory, `batch-${experimentId}`), {
+          cellCount: body.cellCount,
+          dtMinutes: body.dtMinutes,
+          durationMinutes: body.durationMinutes,
+          seed: body.seed,
+        })
+        const files = [...BATCH_EXPORT_FILES].map((filename) => ({
+          filename,
+          url: `/api/v1/experiments/batch/${experimentId}/${filename}`,
+        }))
+        sendJson(response, 201, { files, manifest })
+        return
+      }
+
       const cellMatch = url.pathname.match(/^\/api\/v1\/observatories\/([^/]+)\/cells$/)
       if (request.method === 'POST' && cellMatch) {
         const observatoryId = decodeURIComponent(cellMatch[1])
@@ -142,13 +194,16 @@ export async function createRuntimeServer(options = {}) {
           return
         }
         const body = await readJson(request)
+        const spawnAngle = Math.random() * Math.PI * 2
+        const populationRadius = Math.max(80, Math.sqrt(cellCount + 1) * 30)
+        const spawnRadius = Math.sqrt(Math.random()) * populationRadius
         const cell = {
-          heading: Number.isFinite(body.heading) ? body.heading : Math.random() * Math.PI * 2 - Math.PI,
+          heading: Number.isFinite(body.heading) ? body.heading : spawnAngle - Math.PI,
           id: `cell-${randomUUID()}`,
           observatoryId,
           seed: randomSeed(),
-          x: Number.isFinite(body.x) ? body.x : 0,
-          y: Number.isFinite(body.y) ? body.y : 0,
+          x: Number.isFinite(body.x) ? body.x : Math.cos(spawnAngle) * spawnRadius,
+          y: Number.isFinite(body.y) ? body.y : Math.sin(spawnAngle) * spawnRadius,
         }
         await database.request('createCell', cell)
         if (!pool.send(observatoryId, 'addCell', cell)) {
@@ -156,6 +211,28 @@ export async function createRuntimeServer(options = {}) {
           return
         }
         sendJson(response, 201, { cell: { id: cell.id, observatoryId } })
+        return
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/v1/observatories') {
+        const body = await readJson(request)
+        const current = await database.request('getBootstrap')
+        const observatory = {
+          groupId: body.groupId ?? current.groups[0]?.id,
+          id: `observatory-${randomUUID()}`,
+          name: `观察台 ${String(current.observatories.length + 1).padStart(2, '0')}`,
+          palette: ['mint', 'violet', 'amber', 'blue', 'rose'][current.observatories.length % 5],
+          params: MCF10A_COLLAGEN,
+          paused: false,
+          simulatedMinutes: 0,
+          tick: 0,
+        }
+        await database.request('createObservatory', observatory)
+        if (!pool.send(observatory.id, 'upsertObservatory', { ...observatory, cells: [] })) {
+          sendError(response, 503, 'SIMULATION_BUSY', '模拟命令队列已满')
+          return
+        }
+        sendJson(response, 201, { observatory })
         return
       }
 
@@ -190,9 +267,11 @@ export async function createRuntimeServer(options = {}) {
         sendError(response, 404, 'NOT_FOUND', '前端构建不存在')
       }
     } catch (error) {
-      if (error instanceof SyntaxError || error.code === 'BODY_TOO_LARGE') {
+      if (error instanceof SyntaxError || error.code === 'BODY_TOO_LARGE' || error.code === 'INVALID_EXPERIMENT') {
         sendError(response, 400, 'INVALID_REQUEST', error.message)
       } else if (error.code === 'OBSERVATORY_NOT_FOUND') {
+        sendError(response, 404, error.code, error.message)
+      } else if (error.code === 'GROUP_NOT_FOUND') {
         sendError(response, 404, error.code, error.message)
       } else {
         console.error('[错误] 请求处理失败', error.message)
@@ -212,7 +291,7 @@ export async function createRuntimeServer(options = {}) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const port = Number(process.env.PORT ?? 8787)
+  const port = Number(process.env.PORT ?? 8788)
   const host = process.env.HOST ?? '127.0.0.1'
   const runtime = await createRuntimeServer()
   await runtime.listen(port, host)

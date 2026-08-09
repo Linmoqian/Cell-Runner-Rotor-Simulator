@@ -63,14 +63,15 @@ export const drawSubstrate = (
   height: number,
   camera: Point,
   viewOffset: Point,
+  zoom = 1,
 ) => {
   context.clearRect(0, 0, width, height)
   context.fillStyle = '#111f21'
   context.fillRect(0, 0, width, height)
 
-  const spacing = 34
-  const offsetX = ((-camera.x + viewOffset.x) % spacing) - spacing
-  const offsetY = ((-camera.y + viewOffset.y) % spacing) - spacing
+  const spacing = 34 * zoom
+  const offsetX = ((-camera.x * zoom + viewOffset.x) % spacing) - spacing
+  const offsetY = ((-camera.y * zoom + viewOffset.y) % spacing) - spacing
   context.fillStyle = 'rgba(125, 171, 157, 0.11)'
   for (let x = offsetX; x < width + spacing; x += spacing) {
     for (let y = offsetY; y < height + spacing; y += spacing) {

@@ -1,15 +1,24 @@
-import { Pause, Play, RotateCcw } from 'lucide-react'
+import { Pause, Play, Plus, RotateCcw } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import type { CellParams, RunnerRotorCell } from '../model/runnerRotor'
+import type { BatchExportOptions, BatchExportResult } from '../types'
+import { BatchExportControls } from './BatchExportControls'
 import styles from './ObservationStage.module.css'
 
 interface ModelControlsProps {
+  addingCell: boolean
+  cellCount: number
+  onAddCell: () => void
   onChange: (params: CellParams) => void
+  onExport: (options: BatchExportOptions) => void
   onReset: () => void
   onTogglePause: () => void
   params: CellParams
   paused: boolean
   snapshot: RunnerRotorCell
+  batchExportAvailable: boolean
+  batchExporting: boolean
+  batchExportResult: BatchExportResult | null
 }
 
 type ScientificParamKey = 'drRun' | 'drTurn' | 'omegaTurn' | 'tauRun' | 'tauTurn'
@@ -44,12 +53,19 @@ const formatValue = (key: ScientificParamKey, value: number) =>
   key.startsWith('tau') ? value.toFixed(1) : value.toFixed(3)
 
 export function ModelControls({
+  addingCell,
+  cellCount,
+  onAddCell,
   onChange,
+  onExport,
   onReset,
   onTogglePause,
   params,
   paused,
   snapshot,
+  batchExportAvailable,
+  batchExporting,
+  batchExportResult,
 }: ModelControlsProps) {
   const handleChange = (control: ControlDefinition) => (event: ChangeEvent<HTMLInputElement>) => {
     onChange({ ...params, [control.key]: Number(event.target.value) })
@@ -71,7 +87,7 @@ export function ModelControls({
           {snapshot.state.toUpperCase()}
         </span>
         <span>{snapshot.state === 'turn' ? direction : 'POLARIZED →'}</span>
-        <span>{snapshot.stateElapsedMinutes.toFixed(1)} min</span>
+        <span>{cellCount} cells</span>
       </div>
 
       <div className={styles.controls}>
@@ -101,15 +117,26 @@ export function ModelControls({
       </div>
 
       <div className={styles.modelActions}>
+        <button type="button" disabled={addingCell} onClick={onAddCell}>
+          <Plus aria-hidden="true" />
+          {addingCell ? '添加中' : '添加细胞'}
+        </button>
         <button type="button" onClick={onTogglePause}>
           {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
           {paused ? '继续' : '暂停'}
         </button>
         <button type="button" onClick={onReset}>
           <RotateCcw aria-hidden="true" />
-          重置轨迹
+          清空尾迹
         </button>
       </div>
+
+      <BatchExportControls
+        available={batchExportAvailable}
+        exporting={batchExporting}
+        onExport={onExport}
+        result={batchExportResult}
+      />
 
       <ol className={styles.layerFlow} aria-label="科学状态到图形模型的映射">
         <li>virtual cell center</li>

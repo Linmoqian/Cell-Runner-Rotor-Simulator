@@ -9,8 +9,8 @@ export interface StageState {
 }
 
 export const initialStageState: StageState = {
-  stages: [{ id: 'stage-1', palette: 'mint' }],
-  activeStageId: 'stage-1',
+  stages: [{ groupId: 'group-default', id: 'observatory-1', palette: 'mint' }],
+  activeStageId: 'observatory-1',
   groups: [],
   expandedGroupIds: [],
 }
@@ -95,6 +95,17 @@ const stageSlice = createSlice({
     selectStage: (state, action: PayloadAction<string>) => {
       if (state.stages.some((stage) => stage.id === action.payload)) state.activeStageId = action.payload
     },
+    hydrateStages: (state, action: PayloadAction<{ groups: StageGroup[]; stages: Stage[] }>) => {
+      if (action.payload.stages.length === 0) return
+      state.groups = action.payload.groups
+      state.stages = action.payload.stages
+      state.expandedGroupIds = action.payload.groups
+        .filter((group) => state.stages.filter((stage) => stage.groupId === group.id).length > 1)
+        .map((group) => group.id)
+      if (!state.stages.some((stage) => stage.id === state.activeStageId)) {
+        state.activeStageId = state.stages[0].id
+      }
+    },
   },
 })
 
@@ -102,6 +113,7 @@ export const {
   addStage,
   copyStage,
   createStageGroup,
+  hydrateStages,
   moveStageToGroup,
   removeStage,
   reorderStages,

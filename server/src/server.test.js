@@ -24,6 +24,13 @@ test('Web 服务创建细胞并推送后端科学帧', async (context) => {
   assert.equal(bootstrap.observatories[0].id, 'observatory-1')
   assert.equal(bootstrap.cells[0].id, 'cell-1')
 
+  const observatoryCreation = await fetch(`${baseUrl}/api/v1/observatories`, {
+    body: JSON.stringify({ groupId: 'group-default' }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+  assert.equal(observatoryCreation.status, 201)
+
   const creation = await fetch(`${baseUrl}/api/v1/observatories/observatory-1/cells`, {
     body: JSON.stringify({ heading: 0, x: 4, y: -2 }),
     headers: { 'Content-Type': 'application/json' },

@@ -45,14 +45,14 @@ export function StageContextMenu({
         <motion.div
           className={styles.contextMenu}
           role="menu"
-          aria-label={`第 ${contextMenu.stageIndex + 1} 个舞台的菜单`}
+          aria-label={`第 ${contextMenu.stageIndex + 1} 个观察台的菜单`}
           initial={{ opacity: 0, scale: 0.92, y: 6, filter: 'blur(3px)' }}
           animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
           exit={{ opacity: 0, scale: 0.96, y: 4, filter: 'blur(2px)' }}
           style={{ bottom: contextMenu.bottom, left: contextMenu.x }}
           transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
         >
-          <span className={styles.contextMenuTitle}>舞台 {contextMenu.stageIndex + 1}</span>
+          <span className={styles.contextMenuTitle}>观察台 {contextMenu.stageIndex + 1}</span>
           <button
             className={styles.contextMenuItem}
             type="button"
@@ -60,7 +60,7 @@ export function StageContextMenu({
             onClick={() => onCopy(contextMenu.stage)}
           >
             <Copy aria-hidden="true" />
-            复制舞台
+            复制观察台
           </button>
           <div className={styles.groupMenu}>
             <button className={styles.contextMenuItem} type="button" role="menuitem" aria-haspopup="menu">
@@ -102,7 +102,7 @@ export function StageContextMenu({
             onClick={() => onDelete(contextMenu.stage)}
           >
             <Trash2 aria-hidden="true" />
-            删除舞台
+            删除观察台
           </button>
         </motion.div>
       )}

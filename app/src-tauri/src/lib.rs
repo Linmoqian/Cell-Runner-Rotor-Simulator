@@ -25,7 +25,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::add_cell,
-            commands::get_bootstrap
+            commands::create_observatory,
+            commands::get_bootstrap,
+            commands::update_observatory
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Cell Runner-Rotor desktop application");

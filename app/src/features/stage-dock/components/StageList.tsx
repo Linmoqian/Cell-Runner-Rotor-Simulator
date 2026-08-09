@@ -125,7 +125,7 @@ export function StageList({ activeStageId, expandedGroupIds, groups, stages }: S
         onReorder={(nextStages) => dispatch(reorderStages(nextStages))}
         onWheel={scrollStageList}
         role="tablist"
-        aria-label="观察舞台"
+        aria-label="观察台"
       >
         <AnimatePresence initial={false}>
           {visibleStages.map((stage) => {

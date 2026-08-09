@@ -100,6 +100,35 @@ function createCell(cell) {
   }
 }
 
+function createObservatory(observatory) {
+  const now = new Date().toISOString()
+  const group = database.prepare('SELECT 1 FROM observatory_groups WHERE id = ?').get(observatory.groupId)
+  if (!group) throw Object.assign(new Error('观察台组不存在'), { code: 'GROUP_NOT_FOUND' })
+  database
+    .prepare(`
+      INSERT INTO observatories(
+        id, group_id, name, palette, dr_run, dr_turn, omega_turn, tau_run, tau_turn,
+        v_run, v_turn, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    .run(
+      observatory.id,
+      observatory.groupId,
+      observatory.name,
+      observatory.palette,
+      observatory.params.drRun,
+      observatory.params.drTurn,
+      observatory.params.omegaTurn,
+      observatory.params.tauRun,
+      observatory.params.tauTurn,
+      observatory.params.vRun,
+      observatory.params.vTurn,
+      now,
+      now,
+    )
+  return observatory
+}
+
 function persistFrame(frame) {
   const now = new Date().toISOString()
   const updateObservatory = database.prepare(
@@ -184,7 +213,7 @@ function updateObservatory(update) {
   return { id: update.id, params, paused: update.paused }
 }
 
-const operations = { createCell, getBootstrap, persistFrame, updateObservatory }
+const operations = { createCell, createObservatory, getBootstrap, persistFrame, updateObservatory }
 
 ensureDefaultExperiment()
 parentPort.on('message', ({ operation, payload, requestId }) => {

@@ -13,7 +13,7 @@ import {
 } from './stageSlice'
 
 describe('stageSlice', () => {
-  it('添加舞台后激活新舞台', () => {
+  it('添加观察台后激活新观察台', () => {
     const state = stageReducer(initialStageState, addStage())
 
     expect(state.stages).toHaveLength(2)
@@ -25,13 +25,13 @@ describe('stageSlice', () => {
     const state = stageReducer(populatedState, removeStage(populatedState.activeStageId))
 
     expect(state.stages).toHaveLength(1)
-    expect(state.activeStageId).toBe('stage-1')
+    expect(state.activeStageId).toBe('observatory-1')
   })
 
   it('拒绝选择不存在的舞台', () => {
     const state = stageReducer(initialStageState, selectStage('missing'))
 
-    expect(state.activeStageId).toBe('stage-1')
+    expect(state.activeStageId).toBe('observatory-1')
   })
 
   it('按拖拽结果更新舞台顺序', () => {
@@ -50,8 +50,11 @@ describe('stageSlice', () => {
   })
 
   it('复制舞台并将舞台归入可折叠组', () => {
-    const copiedState = stageReducer(initialStageState, copyStage('stage-1'))
-    const groupedState = stageReducer(copiedState, createStageGroup({ name: '实验组', stageId: 'stage-1' }))
+    const copiedState = stageReducer(initialStageState, copyStage('observatory-1'))
+    const groupedState = stageReducer(
+      copiedState,
+      createStageGroup({ name: '实验组', stageId: 'observatory-1' }),
+    )
     const groupId = groupedState.groups[0].id
     const movedState = stageReducer(
       groupedState,

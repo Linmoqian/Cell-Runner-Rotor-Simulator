@@ -83,6 +83,13 @@ pub struct AddCellRequest {
     pub y: Option<f64>,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateObservatoryRequest {
+    pub params: Option<CellParams>,
+    pub paused: Option<bool>,
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CellCreatedDto {

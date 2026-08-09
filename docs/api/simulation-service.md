@@ -4,7 +4,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 接口标识 | `GET /api/v1/bootstrap`、`POST /api/v1/observatories/{id}/cells`、`GET /api/v1/observatories/{id}/stream` |
+| 接口标识 | `GET /api/v1/bootstrap`、`POST /api/v1/observatories`、`PATCH /api/v1/observatories/{id}`、`POST /api/v1/observatories/{id}/cells`、`GET /api/v1/observatories/{id}/stream`、`POST /api/v1/experiments/batch` |
 | 用途 | 创建具有稳定身份的细胞，并订阅由后端产生的群体运动帧 |
 | 调用方 | React 观察台前端 |
 | 提供方 | Node.js Web 服务或 Rust 桌面适配层 |
@@ -25,7 +25,9 @@
 | `y` | body | number | 否 | `0` | 有限数，μm | 新细胞初始纵坐标 |
 | `heading` | body | number | 否 | 随机值 | 有限数，rad | 新细胞初始迁移方向 |
 
-`GET /api/v1/bootstrap` 和事件流请求没有 body。添加细胞使用 `POST /api/v1/observatories/{id}/cells`。
+`GET /api/v1/bootstrap` 和事件流请求没有 body。`POST /api/v1/observatories` 通过 `groupId` 创建属于指定组的观察台；`PATCH /api/v1/observatories/{id}` 接收 `paused` 或完整的 `params`；添加细胞使用 `POST /api/v1/observatories/{id}/cells`。未指定坐标时，后端会按当前群体规模扩大出生圆盘，避免大群体全部堆叠在原点。
+
+`POST /api/v1/experiments/batch` 接收固定种子的 `{ seed, cellCount, durationMinutes, dtMinutes }`，同步生成独立批次的 `manifest.json`、`trajectories.csv`、`turning_angles.csv` 和 `state_residence_times.csv`，返回每个文件的受控下载 URL。该接口目前仅由 Node Web 运行时提供，Tauri 桌面运行时不实现此功能。
 
 ## 响应
 
@@ -99,5 +101,5 @@ Content-Type: application/json
 
 ## 兼容性与变更记录
 
-- 0.1.0：定义 bootstrap、添加细胞及后端帧流的最小契约。
+- 0.1.0：定义 bootstrap、观察台创建与控制、添加细胞及后端帧流的最小契约。
 - 调用方必须忽略未知 JSON 字段；字段删除、重命名或单位变化属于不兼容变更。
