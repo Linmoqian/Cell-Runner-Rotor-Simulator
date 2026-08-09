@@ -1,0 +1,14 @@
+{
+  "name": "cell-runner-rotor-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "check": "node --check src/server.js && node --check src/runtime/simulationWorker.js && node --check src/storage/databaseWorker.js && node --test"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

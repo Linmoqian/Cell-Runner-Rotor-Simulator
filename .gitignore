@@ -2,6 +2,8 @@
 node_modules/
 dist/
 coverage/
+target/
+app/src-tauri/gen/
 
 # Local configuration and logs
 .env
@@ -9,6 +11,7 @@ coverage/
 !.env.example
 *.local
 *.log
+server/data/
 
 # Editors and macOS
 .DS_Store
