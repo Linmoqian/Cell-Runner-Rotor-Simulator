@@ -28,7 +28,7 @@ describe('NeedleBox', () => {
     await waitFor(() => expect(box).toHaveAttribute('data-needle-state', 'held'))
 
     expect(needle).toBeDisabled()
-    expect(screen.getByText(/针已拿起，随鼠标移动/)).toBeInTheDocument()
+    expect(screen.getByText(/针头已对准鼠标，随鼠标移动/)).toBeInTheDocument()
   })
 
   it('针被拿起后点击盒子放回盒中', async () => {

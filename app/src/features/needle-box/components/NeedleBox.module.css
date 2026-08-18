@@ -65,6 +65,7 @@
   width: 64px;
   height: 92px;
   color: #3d5d55;
+  transform: rotate(-59deg);
 }
 
 .hint {

@@ -1,46 +1,53 @@
 import { motion, type Transition } from 'motion/react'
 import { Syringe } from 'lucide-react'
-import { type MouseEvent as ReactMouseEvent, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  type MouseEvent as ReactMouseEvent,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
+import {
+  getHeldAnchor,
+  getHeading,
+  MIN_HEADING_DISTANCE,
+  NEEDLE_HALF,
+  NEEDLE_HEIGHT,
+  NEEDLE_WIDTH,
+  REST_ROTATE,
+  type Point,
+} from '../model/needleGeometry'
 import styles from './NeedleBox.module.css'
 
 type NeedlePhase = 'stored' | 'lifting' | 'held' | 'returning'
 
-interface Point {
-  x: number
-  y: number
-}
-
-// 针的渲染尺寸（px）：坐标以左上角为锚点，集中在这里避免样式与逻辑漂移。
-const NEEDLE_WIDTH = 48
-const NEEDLE_HEIGHT = 64
 const LIFTING_MS = 280
 const PICK_UP_EASE = [0.22, 1, 0.36, 1] as const
 
 const STATUS_TEXT: Record<NeedlePhase, string> = {
   stored: '点击针拿起',
   lifting: '正在拿取针…',
-  held: '针已拿起，随鼠标移动；点击盒子放回',
+  held: '针头已对准鼠标，随鼠标移动；点击盒子放回',
   returning: '正在放回针…',
 }
 
-const toPointerAnchor = (event: { clientX: number; clientY: number }): Point => ({
-  x: event.clientX - NEEDLE_WIDTH / 2,
-  y: event.clientY - NEEDLE_HEIGHT / 2,
-})
-
-const getNeedleAnimation = (phase: NeedlePhase, anchor: Point, pointer: Point) => {
+const getNeedleAnimation = (phase: NeedlePhase, anchor: Point, cursor: Point, heading: number) => {
+  const rest = { x: anchor.x, y: anchor.y, rotate: REST_ROTATE, scale: 1 }
   if (phase === 'stored' || phase === 'returning') {
-    return { x: anchor.x, y: anchor.y, rotate: 0, scale: 1 }
+    return rest
   }
+  const held = { ...getHeldAnchor(cursor, heading), rotate: heading, scale: 1.18 }
   if (phase === 'lifting') {
+    const liftedMid = { x: (anchor.x + held.x) / 2, y: (anchor.y + held.y) / 2 - 26 }
     return {
-      x: [anchor.x, pointer.x],
-      y: [anchor.y, pointer.y - 14, pointer.y],
-      rotate: [0, -16],
+      x: [anchor.x, liftedMid.x, held.x],
+      y: [anchor.y, liftedMid.y, held.y],
+      rotate: [REST_ROTATE, heading],
       scale: [1, 1.18],
     }
   }
-  return { x: pointer.x, y: pointer.y, rotate: -16, scale: 1.18 }
+  return held
 }
 
 const getNeedleTransition = (phase: NeedlePhase): Transition => {
@@ -56,25 +63,26 @@ const getNeedleTransition = (phase: NeedlePhase): Transition => {
   return { duration: 0 }
 }
 
-export function NeedleBox() {
-  const slotRef = useRef<HTMLDivElement>(null)
+function useNeedleMotion(slotRef: RefObject<HTMLDivElement | null>) {
+  const lastCursorRef = useRef<Point | null>(null)
   const [phase, setPhase] = useState<NeedlePhase>('stored')
   const [anchor, setAnchor] = useState<Point | null>(null)
-  const [pointer, setPointer] = useState<Point>({ x: 0, y: 0 })
+  const [cursor, setCursor] = useState<Point>({ x: 0, y: 0 })
+  const [heading, setHeading] = useState(REST_ROTATE)
 
   useLayoutEffect(() => {
     const measureAnchor = () => {
       const bounds = slotRef.current?.getBoundingClientRect()
       if (!bounds) return
       setAnchor({
-        x: bounds.left + bounds.width / 2 - NEEDLE_WIDTH / 2,
-        y: bounds.top + bounds.height / 2 - NEEDLE_HEIGHT / 2,
+        x: bounds.left + bounds.width / 2 - NEEDLE_HALF.x,
+        y: bounds.top + bounds.height / 2 - NEEDLE_HALF.y,
       })
     }
     measureAnchor()
     window.addEventListener('resize', measureAnchor)
     return () => window.removeEventListener('resize', measureAnchor)
-  }, [])
+  }, [slotRef])
 
   useEffect(() => {
     if (phase !== 'lifting') return undefined
@@ -84,18 +92,33 @@ export function NeedleBox() {
 
   useEffect(() => {
     if (phase !== 'held') return undefined
-    const handlePointerMove = (event: PointerEvent) => setPointer(toPointerAnchor(event))
+    const handlePointerMove = (event: PointerEvent) => {
+      const nextCursor = { x: event.clientX, y: event.clientY }
+      const previous = lastCursorRef.current
+      if (
+        previous &&
+        Math.hypot(nextCursor.x - previous.x, nextCursor.y - previous.y) >= MIN_HEADING_DISTANCE
+      ) {
+        setHeading(getHeading(previous, nextCursor))
+      }
+      lastCursorRef.current = nextCursor
+      setCursor(nextCursor)
+    }
     window.addEventListener('pointermove', handlePointerMove)
     return () => window.removeEventListener('pointermove', handlePointerMove)
   }, [phase])
 
-  const handlePickUp = (event: ReactMouseEvent<HTMLButtonElement>) => {
-    if (phase !== 'stored') return
-    setPointer(toPointerAnchor(event))
+  const pickUp = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (phase !== 'stored' || !anchor) return
+    const pickupCursor = { x: event.clientX, y: event.clientY }
+    const slotCenter = { x: anchor.x + NEEDLE_HALF.x, y: anchor.y + NEEDLE_HALF.y }
+    lastCursorRef.current = pickupCursor
+    setCursor(pickupCursor)
+    setHeading(getHeading(slotCenter, pickupCursor))
     setPhase('lifting')
   }
 
-  const handlePutBack = () => {
+  const putBack = () => {
     if (phase !== 'held') return
     setPhase('returning')
   }
@@ -104,6 +127,12 @@ export function NeedleBox() {
     if (phase === 'returning') setPhase('stored')
   }
 
+  return { anchor, cursor, handleReturnComplete, heading, phase, pickUp, putBack }
+}
+
+export function NeedleBox() {
+  const slotRef = useRef<HTMLDivElement>(null)
+  const { anchor, cursor, handleReturnComplete, heading, phase, pickUp, putBack } = useNeedleMotion(slotRef)
   const returnReady = phase === 'held'
   const needleClass = [styles.needle, returnReady ? styles.needleHeld : ''].filter(Boolean).join(' ')
 
@@ -112,7 +141,7 @@ export function NeedleBox() {
       aria-label="针盒"
       className={`${styles.needlePanel}${returnReady ? ` ${styles.returnReady}` : ''}`}
       data-needle-state={phase}
-      onClick={handlePutBack}
+      onClick={putBack}
     >
       <div className={styles.panelHeading}>
         <h2>针盒</h2>
@@ -128,7 +157,7 @@ export function NeedleBox() {
         <motion.div
           className={needleClass}
           initial={false}
-          animate={getNeedleAnimation(phase, anchor, pointer)}
+          animate={getNeedleAnimation(phase, anchor, cursor, heading)}
           transition={getNeedleTransition(phase)}
           onAnimationComplete={handleReturnComplete}
           style={{
@@ -144,7 +173,7 @@ export function NeedleBox() {
             className={styles.needleButton}
             disabled={phase !== 'stored'}
             type="button"
-            onClick={handlePickUp}
+            onClick={pickUp}
           >
             <Syringe aria-hidden="true" />
           </button>
