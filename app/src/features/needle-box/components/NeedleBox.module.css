@@ -1,0 +1,129 @@
+.needlePanel {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #36544d;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(39, 63, 58, 0.64), rgba(19, 34, 36, 0.88)), #142124;
+  box-shadow: inset 0 1px 0 rgba(226, 255, 243, 0.08);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.returnReady {
+  border-color: #aee7c5;
+  box-shadow:
+    inset 0 1px 0 rgba(226, 255, 243, 0.08),
+    0 0 0 3px rgba(174, 231, 197, 0.16);
+}
+
+.panelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panelHeading h2 {
+  margin: 0;
+  color: #edf8f3;
+  font-size: 19px;
+  font-weight: 520;
+  letter-spacing: -0.025em;
+}
+
+.toolTag {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  color: #a9cabe;
+  border: 1px solid #45675e;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.slot {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: clamp(180px, 36vh, 300px);
+  margin-top: 18px;
+  place-items: center;
+  border: 1px solid #3d5d55;
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(0deg, rgba(182, 220, 206, 0.04) 0 2px, transparent 2px 8px),
+    rgba(8, 21, 22, 0.55);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.35),
+    0 1px 0 rgba(240, 255, 249, 0.08);
+}
+
+.slotGhost {
+  width: 64px;
+  height: 92px;
+  color: #3d5d55;
+}
+
+.hint {
+  margin: 16px 0 0;
+  color: #789990;
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.needle {
+  position: fixed;
+  z-index: 30;
+  filter: drop-shadow(0 6px 10px rgba(3, 10, 12, 0.38));
+  user-select: none;
+}
+
+.needleHeld {
+  filter: drop-shadow(0 10px 16px rgba(3, 10, 12, 0.46)) drop-shadow(0 0 10px rgba(174, 231, 197, 0.28));
+}
+
+.needleButton {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  place-items: center;
+  color: #dff3ea;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+}
+
+.needleButton:active {
+  cursor: grabbing;
+}
+
+.needleButton:focus-visible {
+  border-radius: 10px;
+  outline: 2px solid #d6ffe7;
+  outline-offset: 2px;
+}
+
+.needleButton:disabled {
+  cursor: default;
+}
+
+.needleButton svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.6;
+}
+
+@media (max-width: 720px) {
+  .needlePanel {
+    padding: 18px;
+  }
+
+  .slot {
+    min-height: 220px;
+  }
+}

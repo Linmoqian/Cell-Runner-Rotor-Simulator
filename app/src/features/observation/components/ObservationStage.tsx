@@ -10,6 +10,7 @@ import {
 } from '../model/runnerRotor'
 import { ModelControls } from './ModelControls'
 import { ObservationViewport } from './ObservationViewport'
+import { NeedleBox } from '../../needle-box/components/NeedleBox'
 import styles from './ObservationStage.module.css'
 
 interface ObservationStageProps {
@@ -126,6 +127,7 @@ export function ObservationStage({ bootstrap }: ObservationStageProps) {
           resetKey={`${observatory.id}-${resetCount}`}
         />
       </div>
+      <NeedleBox />
     </section>
   )
 }

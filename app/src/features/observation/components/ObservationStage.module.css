@@ -28,7 +28,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr) minmax(260px, 330px);
   gap: clamp(20px, 3vw, 44px);
   align-items: stretch;
   max-width: 1540px;
