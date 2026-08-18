@@ -30,16 +30,16 @@ src/
 ## 命令
 
 ```bash
-npm run dev           # 启动 Vite 开发服务器
-npm run format        # 写入 Prettier 格式
-npm run format:check  # 检查格式
-npm run lint          # 运行 Oxlint
-npm run typecheck     # 运行 TypeScript 项目检查
-npm run test          # 以监听模式运行 Vitest
-npm run test:run      # 单次运行测试
-npm run build         # 类型检查并生成生产包
-npm run check         # 执行完整质量门禁
-npm run preview       # 预览生产构建
+pnpm run dev           # 启动 Vite 开发服务器
+pnpm run format        # 写入 Prettier 格式
+pnpm run format:check  # 检查格式
+pnpm run lint          # 运行 Oxlint
+pnpm run typecheck     # 运行 TypeScript 项目检查
+pnpm run test          # 以监听模式运行 Vitest
+pnpm run test:run      # 单次运行测试
+pnpm run build         # 类型检查并生成生产包
+pnpm run check         # 执行完整质量门禁
+pnpm run preview       # 预览生产构建
 ```
 
 ## 状态边界

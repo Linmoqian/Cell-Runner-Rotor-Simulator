@@ -12,6 +12,7 @@ app/src-tauri/gen/
 *.local
 *.log
 server/data/
+data/
 
 # Editors and macOS
 .DS_Store
