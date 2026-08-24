@@ -1,5 +1,5 @@
-mod commands;
-mod domain;
+pub mod commands;
+pub mod domain;
 mod dto;
 mod runtime;
 mod services;
