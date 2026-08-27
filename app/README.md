@@ -46,4 +46,4 @@ pnpm run preview       # 预览生产构建
 
 观察台及分组索引由启动时的后端 bootstrap 水合到 Redux，当前观察台由悬浮坞和观察视图共同消费。科学状态、细胞轨迹和随机数状态只存在于后端；前端逐帧数据保留在 Canvas 组件的 ref/Map 中，不进入 Redux，避免触发群体级 React 重渲染。
 
-Web 开发需同时启动仓库 `server/`。Tauri 环境由 `window.__TAURI__` 自动切换到 Rust command/事件，不需要另一套页面代码。
+Web 开发使用仓库根目录的 `pnpm run dev:web`，统一启动 `server/` 与 Vite。Tauri 环境由 `window.__TAURI__` 自动切换到 Rust command/事件，不需要另一套页面代码。

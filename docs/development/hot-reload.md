@@ -2,7 +2,8 @@
 
 ## 统一开发入口
 
-- 桌面开发统一使用项目定义的 `npm run tauri dev`，由 Tauri CLI 同时管理前端开发服务器和 Rust 应用进程。
+- Web 开发从仓库根目录执行 `pnpm run dev:web`，统一启动 Node 后端与 Vite 前端。
+- 桌面开发先在 `app/` 执行 `pnpm run dev` 启动 Vite，再在 `app/src-tauri/` 执行 `cargo run` 启动桌面运行时；Tauri 配置中的 `beforeDevCommand` 仅负责前端开发服务器。
 - `tauri.conf.json` 的 `build.beforeDevCommand` 启动 Vite，`build.devUrl` 必须与 Vite 的开发地址和端口一致。
 - 不额外编写重复的文件监听或进程守护脚本；确有性能问题时，优先使用 `.taurignore` 排除生成文件、构建产物等无关路径。
 - Vite 设置 `clearScreen: false`，避免前端刷新覆盖 Rust 编译错误。

@@ -19,27 +19,25 @@
 
 ## 本地开发
 
-Web 运行时要求 Node.js 24+（使用内置 SQLite），前端使用 npm 与仓库锁文件。分别启动后端和 Vite：
+Web 运行时要求 Node.js 24+（使用内置 SQLite），项目统一使用 pnpm。首次安装依赖后，用一个命令启动 Node 后端和 Vite 前端：
 
 ```bash
-cd server
-npm start
-
-cd app
-npm ci
-npm run dev
+pnpm --dir app install --frozen-lockfile
+pnpm --dir server install --frozen-lockfile
+pnpm install --frozen-lockfile
+pnpm run dev:web
 ```
 
-Node 后端默认监听 <http://127.0.0.1:8788>，开发服务器默认使用 <http://localhost:3223> 并代理 `/api`。桌面开发先启动 `app/` 的 Vite，再在 `app/src-tauri/` 执行 `cargo run`；此时科学模拟和 SQLite 持久化均由 Rust 线程运行，不依赖 Node 服务。
+Node 后端默认监听 <http://127.0.0.1:8788>，开发服务器默认使用 <http://localhost:3223> 并代理 `/api`。桌面开发不使用这套 Node Web 后端：在 `app/` 执行 `pnpm run dev`，再在 `app/src-tauri/` 执行 `cargo run`，此时科学模拟和 SQLite 持久化均由 Rust 线程运行。
 
 ## 质量检查
 
 ```bash
 cd app
-npm run check
+pnpm run check
 
 cd ../server
-npm run check
+pnpm run check
 
 cd ../app/src-tauri
 cargo clippy --offline --all-targets -- -D warnings
@@ -54,7 +52,7 @@ Node 运行时可固定种子离线导出原始统计数据，不依赖 UI、SQL
 
 ```bash
 cd server
-npm run experiment:export -- --seed 20260810 --cells 32 --duration-minutes 240 --dt-minutes 0.1 --output artifacts/batch-20260810
+pnpm run experiment:export -- --seed 20260810 --cells 32 --duration-minutes 240 --dt-minutes 0.1 --output artifacts/batch-20260810
 ```
 
 输出目录包含 `manifest.json`（种子、时间步与模型参数）、`trajectories.csv`（每步位置与朝向）、`turning_angles.csv`（相邻步的规范化转向角）和 `state_residence_times.csv`（连续 Run/Turn 段的驻留时间）。此命令目前只生成可供统计分析的原始数据，不包含论文图复现。
