@@ -1,18 +1,20 @@
 # 细胞群体模拟服务
 
+> 适用范围：本文描述保留在 `server/` 的 Node 本地对照服务，不是 Vercel Web 生产接口。Web 页面不请求 `/api/v1/**`；浏览器 Web Worker 与 IndexedDB 是 Web 版科学状态权威。桌面接口见 `desktop-simulation.md`。
+
 ## 接口元信息
 
 | 项目 | 内容 |
 | --- | --- |
 | 接口标识 | `GET /api/v1/bootstrap`、`POST /api/v1/observatories`、`PATCH /api/v1/observatories/{id}`、`POST /api/v1/observatories/{id}/cells`、`GET /api/v1/observatories/{id}/stream`、`POST /api/v1/experiments/batch` |
 | 用途 | 创建具有稳定身份的细胞，并订阅由后端产生的群体运动帧 |
-| 调用方 | React 观察台前端 |
-| 提供方 | Node.js Web 服务或 Rust 桌面适配层 |
+| 调用方 | 本地对照测试与科研工具 |
+| 提供方 | Node.js 本地服务 |
 | 稳定性 | 实验性 |
 | 引入版本 | 0.1.0 |
 | 维护方 | simulation-runtime 模块 |
 | 接口类型 | HTTP API 与 Server-Sent Events；桌面端映射为 Tauri command 与事件 |
-| 调用方式 | Web Base URL `/api/v1`；桌面端使用同名语义的 IPC |
+| 调用方式 | 仅本机 Base URL `/api/v1` |
 | 权限或认证 | 本地单用户实验环境，不启用远程认证 |
 | Content-Type | JSON；事件流为 `text/event-stream` |
 
@@ -27,7 +29,7 @@
 
 `GET /api/v1/bootstrap` 和事件流请求没有 body。`POST /api/v1/observatories` 通过 `groupId` 创建属于指定组的观察台；`PATCH /api/v1/observatories/{id}` 接收 `paused` 或完整的 `params`；添加细胞使用 `POST /api/v1/observatories/{id}/cells`。未指定坐标时，后端会按当前群体规模扩大出生圆盘，避免大群体全部堆叠在原点。
 
-`POST /api/v1/experiments/batch` 接收固定种子的 `{ seed, cellCount, durationMinutes, dtMinutes }`，同步生成独立批次的 `manifest.json`、`trajectories.csv`、`turning_angles.csv` 和 `state_residence_times.csv`，返回每个文件的受控下载 URL。该接口目前仅由 Node Web 运行时提供，Tauri 桌面运行时不实现此功能。
+`POST /api/v1/experiments/batch` 接收固定种子的 `{ seed, cellCount, durationMinutes, dtMinutes }`，同步生成独立批次的 `manifest.json`、`trajectories.csv`、`turning_angles.csv` 和 `state_residence_times.csv`，返回每个文件的受控下载 URL。Web 页面在浏览器 Worker 中生成同口径文件，不调用此接口。
 
 ## 响应
 
@@ -59,7 +61,7 @@
 
 ## 权限与安全
 
-服务默认仅监听回环地址。Web 部署到远程环境前必须由部署层增加认证、TLS、来源限制与请求大小限制。日志不得记录完整轨迹、数据库路径或用户环境路径。
+服务只用于本地对照并默认监听回环地址，不作为远程部署入口。日志不得记录完整轨迹、数据库路径或用户环境路径。
 
 ## 行为约束
 
@@ -69,7 +71,7 @@
 - 并发、限流与重试：模拟 Worker 数量和命令队列容量固定有界；数据库始终由单写者顺序提交。
 - 顺序：同一观察台的 `tick` 严格递增；客户端必须丢弃小于等于已渲染 tick 的重复帧。
 - 背压：慢订阅者只保留最新完整帧，允许丢弃中间视觉帧，不允许倒序。
-- 数据事实来源：后端科学状态和 SQLite 检查点是事实来源；前端膜形变仅为可重建图形状态。
+- 数据事实来源：此工具运行时以 Node 状态和 SQLite 检查点为权威；Web 产品以浏览器 Worker 和 IndexedDB 为权威；前端膜形变始终是可重建图形状态。
 
 ## 调用示例
 
@@ -102,4 +104,5 @@ Content-Type: application/json
 ## 兼容性与变更记录
 
 - 0.1.0：定义 bootstrap、观察台创建与控制、添加细胞及后端帧流的最小契约。
+- 0.2.0：退出 Web 生产链，仅保留为 Node 本地科学对照服务。
 - 调用方必须忽略未知 JSON 字段；字段删除、重命名或单位变化属于不兼容变更。

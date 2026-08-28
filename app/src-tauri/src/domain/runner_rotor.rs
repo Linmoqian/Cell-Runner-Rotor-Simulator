@@ -143,6 +143,29 @@ pub fn step_cell(cell: &mut Cell, params: CellParams, dt_minutes: f64) {
 #[cfg(test)]
 mod tests {
     use super::{Cell, CellParams, step_cell, switch_probability};
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct GoldenCase {
+        seed: u32,
+        steps: usize,
+        dt_minutes: f64,
+        expected: GoldenCell,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct GoldenCell {
+        chirality: i8,
+        elapsed_minutes: f64,
+        heading: f64,
+        rng_state: u32,
+        state: String,
+        state_elapsed_minutes: f64,
+        x: f64,
+        y: f64,
+    }
 
     #[test]
     fn exponential_switch_probability_matches_model() {
@@ -164,5 +187,36 @@ mod tests {
         assert_eq!(first.y, second.y);
         assert_eq!(first.heading, second.heading);
         assert_eq!(first.state, second.state);
+    }
+
+    #[test]
+    fn matches_shared_browser_and_node_golden_trajectories() {
+        let cases: Vec<GoldenCase> =
+            serde_json::from_str(include_str!("../../../../tests/runner-rotor-golden.json"))
+                .expect("golden trajectory JSON should be valid");
+        for golden in cases {
+            let mut cell = Cell::new("cell".into(), "golden".into(), golden.seed, 0.0, 0.0, -0.18);
+            for _ in 0..golden.steps {
+                step_cell(&mut cell, CellParams::default(), golden.dt_minutes);
+            }
+            assert_eq!(cell.rng_state, golden.expected.rng_state);
+            assert_eq!(cell.chirality, golden.expected.chirality);
+            assert_eq!(
+                format!("{:?}", cell.state).to_lowercase(),
+                golden.expected.state
+            );
+            for (actual, expected) in [
+                (cell.elapsed_minutes, golden.expected.elapsed_minutes),
+                (cell.heading, golden.expected.heading),
+                (
+                    cell.state_elapsed_minutes,
+                    golden.expected.state_elapsed_minutes,
+                ),
+                (cell.x, golden.expected.x),
+                (cell.y, golden.expected.y),
+            ] {
+                assert!((actual - expected).abs() < 1e-12);
+            }
+        }
     }
 }

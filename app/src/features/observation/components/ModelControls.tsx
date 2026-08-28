@@ -1,4 +1,4 @@
-import { Pause, Play, Plus, RotateCcw } from 'lucide-react'
+import { Pause, Play, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import type { CellParams, RunnerRotorCell } from '../model/runnerRotor'
 import type { BatchExportOptions, BatchExportResult } from '../types'
@@ -10,6 +10,7 @@ interface ModelControlsProps {
   cellCount: number
   onAddCell: () => void
   onChange: (params: CellParams) => void
+  onClearLocalData: () => void
   onExport: (options: BatchExportOptions) => void
   onReset: () => void
   onTogglePause: () => void
@@ -19,6 +20,7 @@ interface ModelControlsProps {
   batchExportAvailable: boolean
   batchExporting: boolean
   batchExportResult: BatchExportResult | null
+  localDataAvailable: boolean
 }
 
 type ScientificParamKey = 'drRun' | 'drTurn' | 'omegaTurn' | 'tauRun' | 'tauTurn'
@@ -57,6 +59,7 @@ export function ModelControls({
   cellCount,
   onAddCell,
   onChange,
+  onClearLocalData,
   onExport,
   onReset,
   onTogglePause,
@@ -66,6 +69,7 @@ export function ModelControls({
   batchExportAvailable,
   batchExporting,
   batchExportResult,
+  localDataAvailable,
 }: ModelControlsProps) {
   const handleChange = (control: ControlDefinition) => (event: ChangeEvent<HTMLInputElement>) => {
     onChange({ ...params, [control.key]: Number(event.target.value) })
@@ -129,6 +133,12 @@ export function ModelControls({
           <RotateCcw aria-hidden="true" />
           清空尾迹
         </button>
+        {localDataAvailable ? (
+          <button type="button" onClick={onClearLocalData}>
+            <Trash2 aria-hidden="true" />
+            清除本地数据
+          </button>
+        ) : null}
       </div>
 
       <BatchExportControls

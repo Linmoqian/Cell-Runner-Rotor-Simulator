@@ -2,7 +2,7 @@
 
 ## 统一开发入口
 
-- Web 开发从仓库根目录执行 `pnpm run dev:web`，统一启动 Node 后端与 Vite 前端。
+- Web 开发在 `app/` 执行 `pnpm run dev`；Vite 同时构建页面和科学 Web Worker，不启动 Node 对照服务。
 - 桌面开发先在 `app/` 执行 `pnpm run dev` 启动 Vite，再在 `app/src-tauri/` 执行 `cargo run` 启动桌面运行时；Tauri 配置中的 `beforeDevCommand` 仅负责前端开发服务器。
 - `tauri.conf.json` 的 `build.beforeDevCommand` 启动 Vite，`build.devUrl` 必须与 Vite 的开发地址和端口一致。
 - 不额外编写重复的文件监听或进程守护脚本；确有性能问题时，优先使用 `.taurignore` 排除生成文件、构建产物等无关路径。
@@ -13,7 +13,7 @@
 - React、TypeScript 和 CSS 修改由 Vite HMR 局部更新，避免无必要的整窗刷新。
 - 模块初始化必须支持完整页面刷新，不得依赖 HMR 保留状态才能正确运行。
 - HMR 后出现状态、订阅或样式异常时，应先执行完整刷新；不得用重复注册监听器等方式掩盖生命周期错误。
-- 前端只能将可丢失的界面临时状态留在内存中；需要跨应用重启保留的数据必须持久化到明确的数据源。
+- Web 科学检查点写入本应用 IndexedDB；Redux 和 Canvas 内只保留可重建的索引、插值与视觉状态。
 
 ## Rust 自动重建与重启
 

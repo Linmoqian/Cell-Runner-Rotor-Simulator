@@ -10,12 +10,14 @@ describe('ModelControls', () => {
     const onReset = vi.fn()
     const onTogglePause = vi.fn()
     const onExport = vi.fn()
+    const onClearLocalData = vi.fn()
     render(
       <ModelControls
         addingCell={false}
         cellCount={12}
         onAddCell={onAddCell}
         onChange={onChange}
+        onClearLocalData={onClearLocalData}
         onExport={onExport}
         onReset={onReset}
         onTogglePause={onTogglePause}
@@ -25,6 +27,7 @@ describe('ModelControls', () => {
         batchExportAvailable
         batchExporting={false}
         batchExportResult={null}
+        localDataAvailable
       />,
     )
 
@@ -35,6 +38,7 @@ describe('ModelControls', () => {
     fireEvent.click(screen.getByRole('button', { name: '添加细胞' }))
     fireEvent.click(screen.getByRole('button', { name: '清空尾迹' }))
     fireEvent.click(screen.getByRole('button', { name: '导出原始统计' }))
+    fireEvent.click(screen.getByRole('button', { name: '清除本地数据' }))
 
     expect(onChange).toHaveBeenCalledWith({ ...MCF10A_COLLAGEN, omegaTurn: 0.25 })
     expect(onTogglePause).toHaveBeenCalledOnce()
@@ -46,6 +50,7 @@ describe('ModelControls', () => {
       durationMinutes: 240,
       seed: 20260810,
     })
+    expect(onClearLocalData).toHaveBeenCalledOnce()
     expect(screen.getByText('12 cells')).toBeInTheDocument()
   })
 })

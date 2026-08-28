@@ -1,4 +1,9 @@
-import type { CellParams, CellState } from './model/runnerRotor'
+/**
+ * Created on 2026-08-10, updated on 2026-08-28
+ * @author: https://github.com/Linmoqian
+ */
+
+import type { CellParams, CellState, RunnerRotorCell } from './model/runnerRotor'
 
 export interface CellScientificFrame {
   chirality: -1 | 1
@@ -22,25 +27,18 @@ export interface ObservatoryRecord {
   cameraX: number
   cameraY: number
   cameraZoom: number
-  drRun?: number
-  drTurn?: number
   groupId: string
   id: string
   name: string
-  omegaTurn?: number
   palette: string
-  params?: CellParams
+  params: CellParams
   paused: boolean
   simulatedMinutes: number
-  tauRun?: number
-  tauTurn?: number
   tick: number
-  vRun?: number
-  vTurn?: number
 }
 
 export interface BootstrapData {
-  cells: Array<CellScientificFrame & { observatoryId: string; seed: number }>
+  cells: RunnerRotorCell[]
   groups: Array<{ id: string; name: string; sortOrder: number }>
   observatories: ObservatoryRecord[]
 }
@@ -54,5 +52,12 @@ export interface BatchExportOptions {
 
 export interface BatchExportResult {
   files: Array<{ filename: string; url: string }>
-  manifest: BatchExportOptions & { model: string; stepCount: number }
+  manifest: BatchExportOptions & {
+    algorithmVersion: string
+    generatedLocally: true
+    model: string
+    modelParameters: CellParams
+    sha256: Record<string, string>
+    stepCount: number
+  }
 }

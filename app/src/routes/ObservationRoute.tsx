@@ -51,7 +51,7 @@ export function ObservationRoute() {
   if (loadError) {
     return (
       <main className={styles.observatory}>
-        <p role="alert">无法连接群体模拟后端：{loadError}</p>
+        <p role="alert">无法启动本地科学运行时：{loadError}</p>
       </main>
     )
   }
@@ -59,7 +59,7 @@ export function ObservationRoute() {
   if (!bootstrap) {
     return (
       <main className={styles.observatory}>
-        <p role="status">正在连接群体模拟后端…</p>
+        <p role="status">正在恢复本地科学实验…</p>
       </main>
     )
   }

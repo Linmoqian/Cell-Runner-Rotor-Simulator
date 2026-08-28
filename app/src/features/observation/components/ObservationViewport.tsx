@@ -116,7 +116,7 @@ export function ObservationViewport({
     <div className={styles.stageFrame}>
       <div className={styles.stageToolbar}>
         <span>OBSERVATORY / A-{String(activeStageNumber).padStart(2, '0')}</span>
-        <span>BACKEND TRAJECTORY STREAM</span>
+        <span>LOCAL WORKER TRAJECTORY</span>
       </div>
       <div className={styles.stageViewport} onWheel={camera.handleWheel}>
         <CellSimulationCanvas

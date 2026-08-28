@@ -12,6 +12,7 @@ import { drawCell, drawSubstrate, drawTrail, type TrailPoint } from '../graphics
 import { subscribeToFrames } from '../services/simulationClient'
 import type { CellScientificFrame, SimulationFrame } from '../types'
 import type { RunnerRotorCell } from '../model/runnerRotor'
+import { createRunnerRotorCell } from '../model/runnerRotor'
 import styles from './ObservationStage.module.css'
 
 interface CellSimulationCanvasProps {
@@ -199,7 +200,7 @@ function startRenderer(
 
     if (timestamp - lastSnapshotTimestamp >= 160 && visualCells.size > 0) {
       const first = visualCells.values().next().value as VisualCell
-      latestInputs.current.onSnapshot(first.current, visualCells.size)
+      latestInputs.current.onSnapshot(createRunnerRotorCell(first.current), visualCells.size)
       lastSnapshotTimestamp = timestamp
     }
     animationFrame = window.requestAnimationFrame(renderFrame)

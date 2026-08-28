@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '../../../store/hooks'
-import { addCell, exportBatchExperiment, updateObservatory } from '../services/simulationClient'
+import {
+  addCell,
+  clearLocalSimulationData,
+  exportBatchExperiment,
+  updateObservatory,
+} from '../services/simulationClient'
 import type { BatchExportOptions, BatchExportResult, BootstrapData } from '../types'
 import {
   createRunnerRotorCell,
@@ -18,15 +23,32 @@ interface ObservationStageProps {
 }
 
 const getParams = (observatory: BootstrapData['observatories'][number]): CellParams =>
-  observatory.params ?? {
-    drRun: observatory.drRun ?? MCF10A_COLLAGEN.drRun,
-    drTurn: observatory.drTurn ?? MCF10A_COLLAGEN.drTurn,
-    omegaTurn: observatory.omegaTurn ?? MCF10A_COLLAGEN.omegaTurn,
-    tauRun: observatory.tauRun ?? MCF10A_COLLAGEN.tauRun,
-    tauTurn: observatory.tauTurn ?? MCF10A_COLLAGEN.tauTurn,
-    vRun: observatory.vRun ?? MCF10A_COLLAGEN.vRun,
-    vTurn: observatory.vTurn ?? MCF10A_COLLAGEN.vTurn,
+  observatory.params ?? MCF10A_COLLAGEN
+
+function useBatchExport() {
+  const [exporting, setExporting] = useState(false)
+  const [result, setResult] = useState<BatchExportResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const exportBatch = async (options: BatchExportOptions) => {
+    setExporting(true)
+    setError(null)
+    try {
+      const nextResult = await exportBatchExperiment(options)
+      setResult(nextResult)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '批量导出失败')
+    } finally {
+      setExporting(false)
+    }
   }
+  useEffect(
+    () => () => {
+      for (const file of result?.files ?? []) URL.revokeObjectURL(file.url)
+    },
+    [result],
+  )
+  return { error, exportBatch, exporting, result }
+}
 
 export function ObservationStage({ bootstrap }: ObservationStageProps) {
   const { activeStageId, stages } = useAppSelector((state) => state.stages)
@@ -42,8 +64,7 @@ export function ObservationStage({ bootstrap }: ObservationStageProps) {
   const [params, setParams] = useState(() => getParams(observatory))
   const [paused, setPaused] = useState(observatory.paused)
   const [resetCount, setResetCount] = useState(0)
-  const [batchExporting, setBatchExporting] = useState(false)
-  const [batchExportResult, setBatchExportResult] = useState<BatchExportResult | null>(null)
+  const batchExport = useBatchExport()
   const [snapshot, setSnapshot] = useState<RunnerRotorCell>(() => createRunnerRotorCell(initialCells[0]))
   const activeStageNumber = Math.max(1, stages.findIndex((stage) => stage.id === observatory.id) + 1)
 
@@ -81,15 +102,16 @@ export function ObservationStage({ bootstrap }: ObservationStageProps) {
     }
   }
 
-  const handleBatchExport = async (options: BatchExportOptions) => {
-    setBatchExporting(true)
-    setServiceError(null)
+  const handleClearLocalData = async () => {
+    const confirmed = window.confirm(
+      '将删除此浏览器中 Cell Runner 的观察台、参数、随机种子和科学检查点。不会影响其他网站或桌面数据。确定继续吗？',
+    )
+    if (!confirmed) return
     try {
-      setBatchExportResult(await exportBatchExperiment(options))
+      await clearLocalSimulationData()
+      window.location.reload()
     } catch (error) {
-      setServiceError(error instanceof Error ? error.message : '批量导出失败')
-    } finally {
-      setBatchExporting(false)
+      setServiceError(error instanceof Error ? error.message : '清除本地实验数据失败')
     }
   }
 
@@ -100,19 +122,21 @@ export function ObservationStage({ bootstrap }: ObservationStageProps) {
         cellCount={cellCount}
         onAddCell={() => void handleAddCell()}
         onChange={handleParamsChange}
-        onExport={(options) => void handleBatchExport(options)}
+        onClearLocalData={() => void handleClearLocalData()}
+        onExport={(options) => void batchExport.exportBatch(options)}
         onReset={() => setResetCount((count) => count + 1)}
         onTogglePause={handleTogglePause}
         params={params}
         paused={paused}
         snapshot={snapshot}
         batchExportAvailable={!window.__TAURI__}
-        batchExporting={batchExporting}
-        batchExportResult={batchExportResult}
+        batchExporting={batchExport.exporting}
+        batchExportResult={batchExport.result}
+        localDataAvailable={!window.__TAURI__}
       />
-      {serviceError ? (
+      {serviceError || batchExport.error ? (
         <p className={styles.serviceError} role="alert">
-          {serviceError}
+          {serviceError ?? batchExport.error}
         </p>
       ) : null}
       <div className={styles.stageStack} data-observation-stage-id={observatory.id}>

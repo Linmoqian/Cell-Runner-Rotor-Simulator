@@ -8,6 +8,6 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev:web": "node scripts/dev-web.mjs"
+    "dev:web": "pnpm --dir app dev"
   }
 }

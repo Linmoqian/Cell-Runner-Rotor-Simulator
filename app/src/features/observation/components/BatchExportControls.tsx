@@ -37,7 +37,7 @@ export function BatchExportControls({ available, exporting, onExport, result }: 
     <section className={styles.batchExport} aria-label="可重复科学批处理">
       <div className={styles.batchExportHeading}>
         <span>REPRODUCIBLE EXPORT</span>
-        <span>WEB</span>
+        <span>LOCAL WORKER</span>
       </div>
       <div className={styles.batchInputs}>
         {batchFields.map((field) => (
@@ -66,7 +66,7 @@ export function BatchExportControls({ available, exporting, onExport, result }: 
         <Download aria-hidden="true" />
         {exporting ? '导出中' : '导出原始统计'}
       </button>
-      {available ? null : <p>桌面运行时暂未提供批处理导出。</p>}
+      {available ? <p>数据仅在此设备计算，不上传服务器。</p> : <p>桌面运行时暂未提供批处理导出。</p>}
       {result ? (
         <div className={styles.batchDownloads} aria-live="polite">
           <span>{result.manifest.stepCount} steps · 下载数据</span>

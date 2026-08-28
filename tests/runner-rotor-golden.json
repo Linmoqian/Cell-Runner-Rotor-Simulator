@@ -1,0 +1,6 @@
+[
+  {"seed":1,"steps":1000,"dtMinutes":0.1,"expected":{"chirality":-1,"elapsedMinutes":99.9999999999986,"heading":-1.6030379523023417,"rngState":3265833230,"state":"run","stateElapsedMinutes":43.200000000000344,"x":19.43755207730559,"y":-22.52430349983045}},
+  {"seed":7,"steps":1000,"dtMinutes":0.1,"expected":{"chirality":1,"elapsedMinutes":99.9999999999986,"heading":-2.869634721638072,"rngState":3833727709,"state":"turn","stateElapsedMinutes":0.9999999999999999,"x":10.143680266708337,"y":-7.539784188254904}},
+  {"seed":42,"steps":1000,"dtMinutes":0.1,"expected":{"chirality":-1,"elapsedMinutes":99.9999999999986,"heading":2.8019675989063213,"rngState":802431788,"state":"run","stateElapsedMinutes":10.29999999999998,"x":0.022633431269206174,"y":3.495105479139244}},
+  {"seed":20260810,"steps":1000,"dtMinutes":0.1,"expected":{"chirality":1,"elapsedMinutes":99.9999999999986,"heading":-0.3266977911764573,"rngState":1454528226,"state":"run","stateElapsedMinutes":99.9999999999986,"x":37.05820097105542,"y":-10.807696960374715}}
+]

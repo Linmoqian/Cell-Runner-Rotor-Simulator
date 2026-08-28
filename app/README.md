@@ -16,7 +16,7 @@
 src/
 ├── app/                       # 全局 Provider 与主题
 ├── features/
-│   ├── observation/           # 后端帧客户端、单 Canvas 群体观察视图
+│   ├── observation/           # 本地 Worker 科学运行时、IndexedDB 与群体观察视图
 │   └── stage-dock/            # 观察台分组、切换坞与 Redux Slice
 ├── routes/                    # 路由级页面组装
 ├── store/                     # Store 与类型化 Hooks
@@ -44,6 +44,6 @@ pnpm run preview       # 预览生产构建
 
 ## 状态边界
 
-观察台及分组索引由启动时的后端 bootstrap 水合到 Redux，当前观察台由悬浮坞和观察视图共同消费。科学状态、细胞轨迹和随机数状态只存在于后端；前端逐帧数据保留在 Canvas 组件的 ref/Map 中，不进入 Redux，避免触发群体级 React 重渲染。
+Web 版启动时从 IndexedDB 恢复检查点，并由 Web Worker 水合观察台索引。Worker 持有科学状态、细胞轨迹和随机数状态；React 主线程只接收 latest-only 帧。逐帧数据保留在 Canvas 的 ref/Map 中，不进入 Redux，避免群体级 React 重渲染。
 
-Web 开发使用仓库根目录的 `pnpm run dev:web`，统一启动 `server/` 与 Vite。Tauri 环境由 `window.__TAURI__` 自动切换到 Rust command/事件，不需要另一套页面代码。
+Web 开发在本目录执行 `pnpm run dev`，不需要启动 `server/`。Tauri 环境由 `window.__TAURI__` 自动切换到 Rust command/事件，不需要另一套页面代码。Node `server/` 只保留为本地科学对照和批处理工具。

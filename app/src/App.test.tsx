@@ -5,9 +5,17 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { appTheme } from './app/theme'
+import { getBootstrap } from './features/observation/services/simulationClient'
+import type { BootstrapData } from './features/observation/types'
 import { createAppStore } from './store'
 
-const bootstrap = {
+vi.mock('./features/observation/services/simulationClient', () => ({
+  createObservatory: vi.fn(),
+  getBootstrap: vi.fn(),
+  subscribeToFrames: vi.fn(() => () => undefined),
+}))
+
+const bootstrap: BootstrapData = {
   cells: [
     {
       chirality: 1,
@@ -15,6 +23,7 @@ const bootstrap = {
       heading: 0,
       id: 'cell-1',
       observatoryId: 'observatory-1',
+      rngState: 1,
       seed: 1,
       state: 'run',
       stateElapsedMinutes: 0,
@@ -28,20 +37,22 @@ const bootstrap = {
       cameraX: 0,
       cameraY: 0,
       cameraZoom: 1,
-      drRun: 0.005,
-      drTurn: 0.031,
       groupId: 'group-default',
       id: 'observatory-1',
       name: '观察台 01',
-      omegaTurn: 0.16,
       palette: 'mint',
+      params: {
+        drRun: 0.005,
+        drTurn: 0.031,
+        omegaTurn: 0.16,
+        tauRun: 29.9,
+        tauTurn: 8.2,
+        vRun: 0.39,
+        vTurn: 0.32,
+      },
       paused: false,
       simulatedMinutes: 0,
-      tauRun: 29.9,
-      tauTurn: 8.2,
       tick: 0,
-      vRun: 0.39,
-      vTurn: 0.32,
     },
   ],
 }
@@ -58,18 +69,11 @@ const renderApp = (initialEntry = '/') =>
   )
 
 beforeEach(() => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      json: () => Promise.resolve(bootstrap),
-      ok: true,
-      status: 200,
-    }),
-  )
+  vi.mocked(getBootstrap).mockResolvedValue(bootstrap)
 })
 
 describe('App', () => {
-  it('从后端装载观察台并只渲染活动观察台画布', async () => {
+  it('从本地运行时装载观察台并只渲染活动观察台画布', async () => {
     const { container } = renderApp()
 
     expect(await screen.findByRole('complementary', { name: '观察台切换与管理' })).toBeInTheDocument()

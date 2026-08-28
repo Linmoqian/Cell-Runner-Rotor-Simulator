@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import { createCell, MCF10A_COLLAGEN, nextRandom, stepCell, switchProbability } from './runnerRotor.js'
 
@@ -31,4 +32,18 @@ test('固定种子的轨迹可复现且与其他细胞步进顺序无关', () =>
   assert.equal(first.y, second.y)
   assert.equal(first.heading, second.heading)
   assert.equal(first.state, second.state)
+})
+
+test('与浏览器和 Rust 共享的黄金轨迹一致', async () => {
+  const goldenCases = JSON.parse(await readFile(new URL('../../../tests/runner-rotor-golden.json', import.meta.url), 'utf8'))
+  for (const golden of goldenCases) {
+    const cell = createCell({ heading: -0.18, id: 'cell', observatoryId: 'golden', seed: golden.seed })
+    for (let step = 0; step < golden.steps; step += 1) stepCell(cell, MCF10A_COLLAGEN, golden.dtMinutes)
+    assert.equal(cell.rngState, golden.expected.rngState)
+    assert.equal(cell.state, golden.expected.state)
+    assert.equal(cell.chirality, golden.expected.chirality)
+    for (const key of ['elapsedMinutes', 'heading', 'stateElapsedMinutes', 'x', 'y']) {
+      assert.ok(Math.abs(cell[key] - golden.expected[key]) < 1e-12, `${golden.seed}:${key}`)
+    }
+  }
 })
